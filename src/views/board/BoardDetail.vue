@@ -163,10 +163,8 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import PWModal from '@/components/modal/PWmodal.vue'
 import Commodal from '@/components/modal/Commodal.vue'
-import router from '@/router'
 
 
 // 게시글 타입 정의
@@ -204,6 +202,7 @@ const passwordAction = ref<'edit' | 'delete' | null>(null)
 const showDeleteConfirm = ref<boolean>(false)
 const showAlertModal = ref<boolean>(false)
 const alertMessage = ref<string>('')
+const pendingPassword = ref<string>('')
 
 
 //수정 폼
@@ -242,6 +241,7 @@ const emitClose = () => {
 //수정 모달 닫기
 const cancelEdit = () => {
   resetEditForm()
+  pendingPassword.value = ''
 }
 
 //수정 요청
@@ -274,6 +274,7 @@ const saveEdit = async () => {
       body: JSON.stringify({
         title: editForm.value.title,
         content: editForm.value.content,
+        boardPW: pendingPassword.value,
       }),
     })
 
@@ -310,21 +311,46 @@ const saveEdit = async () => {
 const closePasswordModal = () => {
   showPasswordModal.value = false
   passwordAction.value = null
+  pendingPassword.value = ''
 }
 
 //비밀번호 검사
 const confirmPassword = async (password: string) => {
-  const currentPost = post.value
-  if (!currentPost?.boardPW) {
-    passwordError.value = '비밀번호가 설정되지 않았습니다.'
+  if (!password?.trim()) {
+    passwordError.value = '비밀번호를 입력해주세요.'
     return
   }
-  if (password !== currentPost.boardPW) {
-    passwordError.value = '비밀번호가 일치하지 않습니다.'
-    return
-  }
+  if (!post.value) return
+
+  try {
+    const response = await fetch(`/api/board/post/${post.value.id}/check-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        boardPW: password,
+      }),
+    })
+
+    if (!response.ok) {
+      openAlert('비밀번호 확인에 실패했습니다.')
+      return
+    }
+
+    const result = await response.json()
+    if (!result) {
+      passwordError.value = '비밀번호가 일치하지 않습니다.'
+      return
+    }
+
+    pendingPassword.value = password
     showPasswordModal.value = false
     passwordError.value = null
+  } catch {
+    openAlert('비밀번호 확인에 실패했습니다.')
+    return
+  }
 
   if (passwordAction.value === 'delete') {
     passwordAction.value = null
@@ -347,8 +373,6 @@ const openAlert = (message: string) => {
 
 const closeAlert = () => {
   showAlertModal.value = false
-  // debugger;
-  await router.push({path: '/'});
   emit('select')
   emit('close')
 }
@@ -378,6 +402,12 @@ const performDelete = async () => {
   try {
     const response = await fetch(`/api/board/postdelete/${post.value.id}`, {
       method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        boardPW: pendingPassword.value,
+      }),
     })
 
     if (!response.ok) {
