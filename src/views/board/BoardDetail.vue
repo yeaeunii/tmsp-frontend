@@ -1,123 +1,134 @@
 <template>
-  <div
-    v-if="post"
-    class="fixed inset-0 z-50 overflow-hidden"
-    @click.self="emitClose">
-    <!-- 배경  -->
-    <div class="absolute inset-0 bg-black/40 transition-opacity"></div>
-
-    <!-- 게시글 상세-->
-    <div class="absolute right-0 top-0 h-full w-full max-w-2xl bg-white shadow-xl transform transition-transform duration-300 ease-in-out overflow-y-auto">
-      <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
-        <h2 class="text-2xl font-semibold text-gray-900"></h2>
+  <div class="bg-gray-50 py-10 sm:py-12">
+    <div class="mx-auto w-full max-w-5xl px-6 lg:px-8">
+      <div class="mb-4">
+      </div>
+      <div class="mb-6 flex items-center justify-between border-b border-gray-200 pb-4">
         <button
-          @click="emitClose"
-          class="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          aria-label="닫기버튼">
-          <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          type="button"
+          @click="goBack"
+          class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+        >
+          <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 18l-6-6 6-6" />
           </svg>
+          목록으로
         </button>
       </div>
-      
-      <div class="px-6 py-8">
-        <!-- 게시글 제목 -->
-        <h1 v-if="!isEditing" class="text-3xl font-bold text-gray-900 mb-4">
-          {{ post.title }}
-        </h1>
-        <input
-          v-else
-          v-model="editForm.title"
-          type="text"
-          class="mb-4 w-full rounded-md border border-gray-300 px-3 py-2 text-lg font-semibold text-gray-900 focus:border-pink-400 focus:ring-pink-300"
-          placeholder="제목을 입력하세요"
-        />
 
-        <!-- 게시글 날짜 -->
+      <div v-if="loading" class="mt-10 text-center text-sm text-gray-500">
+        문서를 불러오는 중...
+      </div>
+      <div v-else-if="error" class="mt-10 text-center text-sm text-red-600">
+        {{ error }}
+      </div>
+      <div v-else-if="post" class="w-full">
+        <div class="border-b border-gray-200 pb-4">
+          <h2 class="text-2xl font-semibold text-gray-900">
+            {{ isEditing ? '문서 수정' : post.title }}
+          </h2>
+        </div>
+
+        <div class="py-8">
+          <!-- 문서 제목 -->
+          <h1 v-if="!isEditing" class="sr-only">상세</h1>
+          <input
+            v-else
+            v-model="editForm.title"
+            type="text"
+            class="mb-4 w-full rounded-md border border-gray-300 px-3 py-2 text-lg font-semibold text-gray-900 focus:border-pink-400 focus:ring-pink-300"
+            placeholder="제목을 입력하세요"
+          />
+
+          <!-- 문서 날짜 -->
         <div class="flex items-center gap-4 mb-6 text-sm text-gray-500">
-          <time v-if="!isEditing">
-            {{ formatDate(post.updatedAt || post.createdAt) }}
-          </time>
-          <span v-if="post.writer">
-            작성자: {{ post.writer }}
-          </span>
+            <time v-if="!isEditing">
+              {{ formatDate(post.updatedAt || post.createdAt) }}
+            </time>
+            <span v-if="post.writer">
+              작성자: {{ post.writer }}
+            </span>
 
-          <!-- 수정 /삭제  -->
-          <div v-if="!isEditing" class="ml-auto text-gray-700">
-            <div class="dropdown dropdown-end">
-              <label tabindex="0" class="btn btn-circle btn-sm btn-ghost">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </label>
+            <!-- 수정 /삭제  -->
+            <div v-if="!isEditing" class="ml-auto text-gray-700">
+              <div class="dropdown dropdown-end">
+                <label tabindex="0" class="btn btn-circle btn-sm btn-ghost">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </label>
 
-              <!-- 메뉴 -->
-              <ul
-                tabindex="0"
-                class="dropdown-content z-[50] menu p-2 shadow bg-base-100 rounded-box w-36">
-                <li>
-                  <button
-                    @click="startEdit"
-                    class="flex items-center gap-2"
-                    :disabled="saveLoading">
-                    수정하기
-                  </button>
-                </li>
+                <!-- 메뉴 -->
+                <ul
+                  tabindex="0"
+                  class="dropdown-content z-[50] menu p-2 shadow bg-base-100 rounded-box w-36">
+                  <li>
+                    <button
+                      @click="startEdit"
+                      class="flex items-center gap-2"
+                      :disabled="saveLoading">
+                      수정하기
+                    </button>
+                  </li>
 
-                <li>
-                  <button
-                    @click="requestDelete"
-                    class="flex items-center gap-2 text-red-500"
-                    :disabled="deleteLoading">
+                  <li>
+                    <button
+                      @click="requestDelete"
+                      class="flex items-center gap-2 text-red-500"
+                      :disabled="deleteLoading">
                      삭제하기
-                  </button>
-                </li>
-              </ul>
+                    </button>
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="border-t border-gray-200 mb-6"></div>
-        
-        <!--게시글 내용 -->
-        <div class="prose max-w-none">
-          <p v-if="!isEditing" class="text-gray-700 whitespace-pre-wrap leading-relaxed">
-            {{ post.content || '내용이 없습니다.' }}
+          <div class="border-t border-gray-200 mb-6"></div>
+          
+        <!--문서 내용 -->
+          <div class="prose max-w-none">
+            <p v-if="!isEditing" class="text-gray-700 whitespace-pre-wrap leading-relaxed">
+              {{ post.content || '내용이 없습니다.' }}
+            </p>
+            <textarea
+              v-else
+              v-model="editForm.content"
+              rows="10"
+              class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-pink-400 focus:ring-pink-300"
+              placeholder="내용을 입력하세요"
+            ></textarea>
+          </div>
+
+          <!-- 수정 시  버튼 -->
+          <div v-if="isEditing" class="mt-6 flex items-center justify-end gap-3">
+            <button
+              @click="cancelEdit"
+              class="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              :disabled="saveLoading">
+              취소
+            </button>
+            <button
+              @click="saveEdit"
+              class="rounded-md bg-pink-500 px-6 py-2 text-sm font-semibold text-white hover:bg-pink-600 shadow-sm"
+              :disabled="saveLoading">
+              {{ saveLoading ? '저장 중' : '저장' }}
+            </button>
+          </div>
+
+          <p v-if="errorMessage" class="mt-4 text-sm text-red-600">
+            {{ errorMessage }}
           </p>
-          <textarea
-            v-else
-            v-model="editForm.content"
-            rows="10"
-            class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-pink-400 focus:ring-pink-300"
-            placeholder="내용을 입력하세요"
-          ></textarea>
         </div>
-
-        <!-- 수정 시  버튼 -->
-        <div v-if="isEditing" class="mt-6 flex items-center justify-end gap-3">
-          <button
-            @click="cancelEdit"
-            class="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-            :disabled="saveLoading">
-            취소
-          </button>
-          <button
-            @click="saveEdit"
-            class="rounded-md bg-pink-500 px-6 py-2 text-sm font-semibold text-white hover:bg-pink-600 shadow-sm"
-            :disabled="saveLoading">
-            {{ saveLoading ? '저장 중' : '저장' }}
-          </button>
-        </div>
-
-        <p v-if="errorMessage" class="mt-4 text-sm text-red-600">
-          {{ errorMessage }}
-        </p>
+      </div>
+      <div v-else class="mt-10 text-center text-sm text-gray-500">
+        문서를 찾을 수 없습니다.
       </div>
     </div>
   </div>
@@ -162,12 +173,13 @@
 
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import PWModal from '@/components/modal/PWmodal.vue'
 import Commodal from '@/components/modal/Commodal.vue'
 
 
-// 게시글 타입 정의
+// 문서 타입 정의
 interface Post {
   id: number 
   title: string
@@ -178,19 +190,12 @@ interface Post {
   createdAt?: string
 }
 
-//선택 게시글 
-const props = defineProps<{
-  post: Post | null
-}>()
+const route = useRoute()
+const router = useRouter()
 
-const emit = defineEmits<{
-  (event: 'close'): void
-  (event: 'updated', post: Post): void
-  (event: 'deleted', id: Post['id']): void
-  (event: 'select'): void
-}>()
-
-const post = computed(() => props.post)
+const post = ref<Post | null>(null)
+const loading = ref<boolean>(false)
+const error = ref<string | null>(null)
 const isEditing = ref<boolean>(false)
 const saveLoading = ref<boolean>(false)
 const deleteLoading = ref<boolean>(false)
@@ -211,7 +216,7 @@ const editForm = ref({
   content: '',
 })
 
-//수정시 기존 게시글로 초기화 
+//수정시 기존 문서로 초기화 
 const resetEditForm = () => {
   editForm.value = {
     title: post.value?.title ?? '',
@@ -221,21 +226,58 @@ const resetEditForm = () => {
   isEditing.value = false
 }
 
+const fetchPost = async () => {
+  loading.value = true
+  error.value = null
+  post.value = null
 
-watch(
-  () => props.post,
-  (newPost) => {
-    if (newPost) {
+  const rawId = route.params.id
+  const id = Number(rawId)
+  if (!Number.isFinite(id)) {
+    error.value = '잘못된 문서 주소입니다.'
+    loading.value = false
+    return
+  }
+
+  try {
+    const response = await fetch('/api/board/postselect', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    const found = data.find((item: Post) => item.id === id)
+    if (!found) {
+      error.value = '문서를 찾을 수 없습니다.'
+    } else {
+      post.value = found
       resetEditForm()
     }
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '문서 조회 오류'
+  } finally {
+    loading.value = false
+  }
+}
+
+const goBack = () => {
+  router.push('/board')
+}
+
+watch(
+  () => route.params.id,
+  () => {
+    fetchPost()
   },
   { immediate: true }
 )
 
-//게시글 닫기
-const emitClose = () => {
-  emit('close')
-}
 
 
 //수정 모달 닫기
@@ -280,9 +322,9 @@ const saveEdit = async () => {
 
     if (!response.ok) {
       if (response.status === 404) {
-        openAlert('게시글이 존재하지 않습니다.')
+        openAlert('문서가 존재하지 않습니다.')
       } else if (response.status === 410) {
-        openAlert('이미 삭제된 게시글입니다.')
+        openAlert('이미 삭제된 문서입니다.')
         cancelEdit()
       } else {
         openAlert('알 수 없는 오류가 발생했습니다.')
@@ -296,7 +338,7 @@ const saveEdit = async () => {
       content: editForm.value.content,
     }
 
-    emit('updated', updatedPost)
+    post.value = updatedPost
     
     isEditing.value = false
 
@@ -373,8 +415,6 @@ const openAlert = (message: string) => {
 
 const closeAlert = () => {
   showAlertModal.value = false
-  emit('select')
-  emit('close')
 }
 
 //삭제 요청
@@ -412,16 +452,16 @@ const performDelete = async () => {
 
     if (!response.ok) {
       if (response.status === 404) {
-        openAlert('게시글이 존재하지 않습니다.')
+        openAlert('문서가 존재하지 않습니다.')
       } else if (response.status === 410) {
-        openAlert('이미 삭제된 게시글입니다.')
+        openAlert('이미 삭제된 문서입니다.')
         cancelEdit()
       } else {
         openAlert('알 수 없는 오류가 발생했습니다.')
       }
       return
     }
-    emit('deleted', post.value.id)
+    router.push('/board')
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.'
   } finally {

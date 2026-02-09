@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="TMS">
+  <defs>
+    <linearGradient id="tmsg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fda4af"/>
+      <stop offset="1" stop-color="#fb7185"/>
+    </linearGradient>
+  </defs>
+  <circle cx="32" cy="32" r="30" fill="url(#tmsg)"/>
+  <rect x="18" y="16" width="22" height="30" rx="3" fill="#ffffff" opacity="0.95"/>
+  <rect x="22" y="22" width="14" height="2.8" rx="1.4" fill="#fb7185"/>
+  <rect x="22" y="28" width="12" height="2.8" rx="1.4" fill="#fb7185"/>
+  <rect x="22" y="34" width="10" height="2.8" rx="1.4" fill="#fb7185"/>
+  <circle cx="44.5" cy="41" r="6.5" fill="#ffffff" opacity="0.95"/>
+  <path d="M44.5 36.5l1.2 1.1 1.7-.3.6 1.6 1.6.6-.3 1.7 1.1 1.2-1.1 1.2.3 1.7-1.6.6-.6 1.6-1.7-.3-1.2 1.1-1.2-1.1-1.7.3-.6-1.6-1.6-.6.3-1.7-1.1-1.2 1.1-1.2-.3-1.7 1.6-.6.6-1.6 1.7.3z" fill="#fb7185"/>
+  <circle cx="44.5" cy="41" r="2.2" fill="#ffffff"/>
+</svg>

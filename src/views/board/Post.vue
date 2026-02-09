@@ -8,25 +8,27 @@
           게시글 작성
         </h2>
         <p class="mt-2 text-sm text-gray-500">
-          게시판에 등록될 글을 작성해주세요.
+          게시판에 등록될 내용을 작성해주세요.
         </p>
       </div>
 
      
-      <div class="bg-white border border-pink-200 rounded-xl shadow-sm p-6 sm:p-8">
+      <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 sm:p-8">
         <form @submit.prevent="submitPost" class="space-y-6">
 
-          <!-- 닉네임 -->
+          <!-- 닉네임/회원명 -->
           <div>
             <label class="block text-sm font-medium text-gray-700">
-              닉네임
+              {{ isLogin ? '회원명' : '닉네임' }}
             </label>
             <input
               type="text"
               v-model="form.writer"
+              :readonly="isLogin"
+              :disabled="isLogin"
               class="mt-2 block w-full rounded-md border border-gray-300 px-3 py-2
-                     text-sm text-gray-900 focus:border-pink-400 focus:ring-pink-300"
-              placeholder="닉네임을 입력하세요"
+                     text-sm text-gray-900 focus:border-pink-400 focus:ring-pink-300 disabled:bg-gray-100 disabled:text-gray-500"
+              :placeholder="isLogin ? '' : '닉네임을 입력하세요'"
             />
           </div>
 
@@ -63,8 +65,8 @@
             <label class="block text-sm font-medium text-gray-700">
              게시글 비밀번호
             </label>
-            <p class="mt-1 text-xs text-red-500">
-              * 비밀번호는 숫자 4글자로 입력해주세요.
+            <p class="mt-1 text-xs text-rose-500">
+            비밀번호는 숫자 4글자로 입력해주세요.
             </p>
             <input
               type="password"
@@ -82,15 +84,15 @@
           <div class="flex justify-end gap-3 pt-4">
             <button
               type="button"
-              @click="router.push('/')"
+              @click="router.push('/board')"
               class="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
             >
               취소
             </button>
             <button
               type="submit"
-              class="rounded-md bg-pink-500 px-6 py-2 text-sm font-semibold text-white
-                     hover:bg-pink-600 shadow-sm"
+              class="rounded-md bg-blue-500 px-6 py-2 text-sm font-semibold text-white
+                     hover:bg-blue-600 shadow-sm"
             >
               저장
             </button>
@@ -121,14 +123,18 @@
 
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import Commodal from '@/components/modal/Commodal.vue'
+import { authFetch } from '@/utils/api'
+import { useUserStore } from '@/store/user'
 
 const router = useRouter()
+const userStore = useUserStore()
+const isLogin = ref<boolean>(false)
 
 const form = ref({
-  writerid : '1',
+  writerid: '',
   writer: '',
   title: '',
   content: '',
@@ -138,6 +144,23 @@ const form = ref({
 const showAlertModal = ref<boolean>(false)
 const alertMessage = ref<string>('')
 const passwordError = ref<string | null>(null)
+
+const syncWriterFromUser = () => {
+  if (userStore.isLogin) {
+    form.value.writer = userStore.username || ''
+    isLogin.value = true
+    form.value.writerid = userStore.memberId ? String(userStore.memberId) : '1'
+  } else {
+    isLogin.value = false
+    form.value.writerid = '1'
+  }
+}
+
+watch(
+  () => [userStore.isLogin, userStore.username],
+  () => syncWriterFromUser(),
+  { immediate: true }
+)
 
 const openAlert = (message: string) => {
   alertMessage.value = message
@@ -184,13 +207,22 @@ const submitPost = async () => {
   }
 
   try {
-    const response = await fetch('/api/board/postwrite', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(form.value),
-    })
+    const response = userStore.isLogin
+      ? await authFetch('/api/board/postwrite', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(form.value),
+        })
+      : await fetch('/api/board/postwrite', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(form.value),
+        })
+    
 
     if (!response.ok) {
       throw new Error('저장 실패')
@@ -198,7 +230,7 @@ const submitPost = async () => {
 
 
     //목록페이지로 이동 
-    router.push('/')
+    router.push('/board')
 
 
 
